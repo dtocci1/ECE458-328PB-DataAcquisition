@@ -1,8 +1,14 @@
 /*
- * ADC Thermistor Test.c
+ *main.c
  *
  * Created: 1/11/2021 12:01:58 PM
  * Author : dylma
+ *
+ * ADC Pin setup:
+ *	C0 = RTD probe
+ *  C1 = Pressure sensor
+ *  C2 = Moisture sensor
+ *  C3 = Windspeed (TBD)
  */ 
 
 #include <stdio.h>
@@ -12,22 +18,41 @@
 #define USART_BAUDRATE 9600
 #define UBRR_VALUE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define VREF 5
-#define VMAX 3.076923077
-#define VMIN 2.142857143
 
 float returnPressure(uint16_t pressure)
 {
-	
 	float conversion;
-	conversion = ((5 * ((double)pressure / 1024) * 25.3815) - 0.6351236) * 1000; // convert to 10-bit value to Volts, then multiply by 23.3815 (PSI/V) for pressure
+	conversion = ((((5 * ((double)pressure / 1024)) - 0.5) * 25.3815) + 12.422) * 1000;// * 25.3815) - 0.6351236) * 1000; // convert to 10-bit value to Volts, then multiply by 23.3815 (PSI/V) for pressure
 	return conversion;
 }
 
-float returnTemp(uint16_t resistance)
+float returnTemperature(uint16_t resistance)
 {
 	float conversion;
 	conversion = 0.260075107866203 * resistance - 260.068512926113;
 	return conversion;
+}
+
+int returnMoisture(uint16_t moisture) {
+	// Moisture sensor measures from 0 to 3.085V max based on water level
+	// In theory, more voltage indicates more water is hitting the sensor
+	// This needs to be validated in testing.
+	// If statement need to be adjusted, reaches level 5 at half way on sensor somehow
+	float conversion;
+	conversion = ((double)moisture/1024) * 5000; // convert to voltage (0-5V)
+	return conversion;
+	// Determine moisture content
+	if(conversion < 0.6)
+		return 1;
+	else if (conversion < 1.2)
+		return 2;
+	else if (conversion < 1.8)
+		return 3;
+	else if (conversion < 2.4)
+		return 4;
+	else
+		return 5;
+		
 }
 
 void USART0Init(void)
@@ -77,8 +102,8 @@ uint16_t ReadADC(uint8_t ADCchannel)
 
 int main()
 {
-	double potval, presVal, tmp;
-	uint16_t vbg;
+	double rtdVal, presVal, moisVal, tmp;
+	uint16_t tempVal;
 	//initialize ADC
 	InitADC();
 	//Initialize USART0
@@ -87,18 +112,22 @@ int main()
 	stdout=&usart0_str;
 	while(1)
 	{
-		//reading potentiometer value and recalculating to Ohms
-		potval = 2.042990654 * ReadADC(0); // = something in range of 2.143 to 5V (3.1~ max)
+		// Calculate temperature
+		rtdVal = 2.042990654 * ReadADC(0); // translate voltage change to resistance
+		tempVal = returnTemperature(rtdVal); // Convert resistance to temperature via linear regression based on table
+		
+		// Calculate pressure
 		presVal = returnPressure(ReadADC(1));
-		//potval = (tmp*1000) / (VREF - tmp);
-		//sending potentiometer value to terminal
-		printf("Potentiometer value = %u Ohm\n", (uint16_t)potval);
-		//reading band gap voltage and recalculating to volts
-		vbg=returnTemp(potval);
+		
+		// Calculate moisture level
+		// Level from 1 - 5: 1 being light mist, 5 being heavy rainfall
+		moisVal = returnMoisture(ReadADC(2));
+	
 		//printing value to terminal
-		printf("Temperature =  %u C\n", vbg);
+		printf("Temperature =  %u C\n", presVal);
 		//approximate 1s
 		printf("Pressure Value = %u mPSI\n", (uint16_t)presVal);
+		printf("Moisture Level = %u mV \n", (uint16_t)moisVal);
 		_delay_ms(1000);
 	} 
 }
