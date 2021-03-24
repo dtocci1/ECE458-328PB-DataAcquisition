@@ -102,9 +102,9 @@ uint16_t ReadADC(uint8_t ADCchannel)
 
 int main()
 {
-	double rtdVal, presVal, moisVal;
-	uint16_t tempVal;
+	double rtdVal, presVal, moisVal, tempVal;
 	uint16_t curTime = 0;
+	uint16_t convTempVal = 0;
 	//initialize ADC
 	InitADC();
 	//Initialize USART0
@@ -115,20 +115,25 @@ int main()
 	printf("------------------------------------------------------------------------------\n");
 	while(1)
 	{
-		// Calculate temperature
 		rtdVal = 2.042990654 * ReadADC(0); // translate voltage change to resistance
 		tempVal = returnTemperature(rtdVal); // Convert resistance to temperature via linear regression based on table
+		presVal = returnPressure(ReadADC(1)); // Calculate pressure
+		moisVal = returnMoisture(ReadADC(2));	// Level from 1 - 5: 1 being light mist, 5 being heavy rainfall
 		
-		// Calculate pressure
-		presVal = returnPressure(ReadADC(1));
-		
-		// Calculate moisture level
-		// Level from 1 - 5: 1 being light mist, 5 being heavy rainfall
-		moisVal = returnMoisture(ReadADC(2));
-	
-		//printing value to terminal
-		printf("%u\t%15u\t%15u\t%15u \n", curTime, (uint16_t)tempVal, (uint16_t)presVal, (uint16_t)moisVal);
-		_delay_ms(60000); // this line dont do shit
+		// "Print" results to stdout (USART)
+		printf("%u\t\t\t",curTime);
+		if(tempVal < 0) {
+			convTempVal = 0 + -1*tempVal; // Don't use abs(), destorys int value - may be because its a float
+			printf("-%u\t\t\t", convTempVal);
+		}
+		else
+		{
+			convTempVal = tempVal;
+			printf("%u\t\t\t", convTempVal);
+		}
+		printf("%u\t\t\t",(uint16_t)presVal);
+		printf("%u\t\t\t\n",(uint16_t)moisVal);
+		_delay_ms(60000);
 		curTime += 1;
 	} 
 }
