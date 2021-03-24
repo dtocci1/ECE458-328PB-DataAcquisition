@@ -13,8 +13,8 @@
 
 #include <stdio.h>
 #include <avr/io.h>
+#define F_CPU 16000000 // Need to specify before util/delay.h, it won't work otherwise
 #include <util/delay.h>
-#define F_CPU 16000000
 #define USART_BAUDRATE 9600
 #define UBRR_VALUE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define VREF 5
@@ -26,7 +26,7 @@ float returnPressure(uint16_t pressure)
 	return conversion;
 }
 
-float returnTemperature(uint16_t resistance)
+float returnTemperature(uint16_t resistance) // requires compensation
 {
 	float conversion;
 	conversion = 0.260075107866203 * resistance - 260.068512926113;
@@ -83,7 +83,7 @@ int USART0SendByte(char u8Data, FILE *stream)
 FILE usart0_str = FDEV_SETUP_STREAM(USART0SendByte, NULL, _FDEV_SETUP_WRITE);
 void InitADC()
 {
-    // Select Vref=AVcc
+    // Select Vref = AVcc
     ADMUX |= (1<<REFS0);
     //set prescaller to 128 and enable ADC  
     ADCSRA |= (1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0)|(1<<ADEN);     
@@ -102,14 +102,17 @@ uint16_t ReadADC(uint8_t ADCchannel)
 
 int main()
 {
-	double rtdVal, presVal, moisVal, tmp;
+	double rtdVal, presVal, moisVal;
 	uint16_t tempVal;
+	uint16_t curTime = 0;
 	//initialize ADC
 	InitADC();
 	//Initialize USART0
 	USART0Init();
 	//assign our stream to standard I/O streams
 	stdout=&usart0_str;
+	printf("Time (min)\tTemperature (C)\tPressure (mPSI)\tMoisture (V)\n"); // 15 char columns with tab spacing
+	printf("------------------------------------------------------------------------------\n");
 	while(1)
 	{
 		// Calculate temperature
@@ -124,10 +127,8 @@ int main()
 		moisVal = returnMoisture(ReadADC(2));
 	
 		//printing value to terminal
-		printf("Temperature =  %u C\n", presVal);
-		//approximate 1s
-		printf("Pressure Value = %u mPSI\n", (uint16_t)presVal);
-		printf("Moisture Level = %u mV \n", (uint16_t)moisVal);
-		_delay_ms(1000);
+		printf("%u\t%15u\t%15u\t%15u \n", curTime, (uint16_t)tempVal, (uint16_t)presVal, (uint16_t)moisVal);
+		_delay_ms(60000); // this line dont do shit
+		curTime += 1;
 	} 
 }
