@@ -115,8 +115,10 @@ int main()
 	printf("------------------------------------------------------------------------------\n");
 	while(1)
 	{
-		rtdVal = 2.042990654 * ReadADC(0); // translate voltage change to resistance
-		tempVal = returnTemperature(rtdVal); // Convert resistance to temperature via linear regression based on table
+		rtdVal = ReadADC(0);
+		rtdVal = 5 * (rtdVal/1024); // translate voltage change to resistance
+		rtdVal = (rtdVal * 1000)/(5-rtdVal);//returnTemperature(rtdVal); // Convert resistance to temperature via linear regression based on table
+		tempVal = returnTemperature(rtdVal);
 		presVal = returnPressure(ReadADC(1)); // Calculate pressure
 		moisVal = returnMoisture(ReadADC(2));	// Level from 1 - 5: 1 being light mist, 5 being heavy rainfall
 		
