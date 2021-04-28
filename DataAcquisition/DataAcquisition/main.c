@@ -39,7 +39,7 @@ int returnMoisture(uint16_t moisture) {
 	// This needs to be validated in testing.
 	// If statement need to be adjusted, reaches level 5 at half way on sensor somehow
 	float conversion;
-	conversion = ((double)moisture/1024) * 5000; // convert to voltage (0-5V)
+	conversion = ((double)moisture/1024) * 500; // convert to voltage (0-5V)
 	return conversion;
 	// Determine moisture content
 	if(conversion < 0.6)
@@ -105,13 +105,14 @@ int main()
 	double rtdVal, presVal, moisVal, tempVal;
 	uint16_t curTime = 0;
 	uint16_t convTempVal = 0;
+	uint16_t moisPercent = 0;
 	//initialize ADC
 	InitADC();
 	//Initialize USART0
 	USART0Init();
 	//assign our stream to standard I/O streams
 	stdout=&usart0_str;
-	printf("Time (min)\tTemperature (C)\tPressure (mPSI)\tMoisture (V)\n"); // 15 char columns with tab spacing
+	printf("Time (min)\tTemperature (C)\tPressure (mPSI)\tMoisture (%)\n"); // 15 char columns with tab spacing
 	printf("------------------------------------------------------------------------------\n");
 	while(1)
 	{
@@ -134,8 +135,9 @@ int main()
 			printf("%u\t\t\t", convTempVal);
 		}
 		printf("%u\t\t\t",(uint16_t)presVal);
-		printf("%u\t\t\t\n",(uint16_t)moisVal);
-		_delay_ms(60000);
+		moisPercent = (moisVal / 3);
+		printf("%u\t\t\t\n",(uint16_t)moisPercent);
+		_delay_ms(600);
 		curTime += 1;
 	} 
 }
