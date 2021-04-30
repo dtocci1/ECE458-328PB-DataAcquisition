@@ -9,6 +9,10 @@
  *  C1 = Pressure sensor
  *  C2 = Moisture sensor
  *  C3 = Windspeed (TBD)
+ *
+ * File upstream and USART setup code has been used from the following site:
+ * 	https://embedds.com/adc-on-atmega328-part-1/
+ * The code has been modified in order to suit the needs of this project.
  */ 
 
 #include <stdio.h>
